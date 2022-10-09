@@ -1,16 +1,16 @@
 package com.famas.watermyplant.android
 
 import android.os.Bundle
-import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -18,12 +18,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.lifecycleScope
-import com.famas.watermyplant.db.realm
-import com.famas.watermyplant.domain.repository.PlantDataSourceImpl
-import com.famas.watermyplant.model.Plant
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.famas.watermyplant.feature_add_plant.interactors.AddPlantAction
+import com.famas.watermyplant.feature_add_plant.interactors.AddPlantEvent
+import com.famas.watermyplant.feature_add_plant.interactors.AddPlantVM
+import dev.icerock.moko.mvvm.flow.compose.observeAsActions
+import org.koin.androidx.viewmodel.ext.android.getViewModel
 
 @Composable
 fun MyApplicationTheme(
@@ -68,29 +67,33 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val plantDataSource = PlantDataSourceImpl()
-
-        lifecycleScope.launch {
-            (1..20).map { "$it item" }.forEach {
-                plantDataSource.insertPlant(Plant(it))
-            }
-        }
-
-        lifecycleScope.launch {
-            delay(5000)
-            plantDataSource.getAllPlants().forEach {
-                Log.d("myTag", it.toString())
-            }
-        }
+        val viewModel = getViewModel<AddPlantVM>()
 
         setContent {
+            val state = viewModel.addPlantStateFlow.collectAsState()
+
+            viewModel.actions.observeAsActions { action ->
+                when (action) {
+                    is AddPlantAction.ShowToast -> {
+                        Toast.makeText(this, action.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+
             MyApplicationTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    Text(text = "Hello Venkey")
+                    Column {
+                        TextField(value = state.value.name, onValueChange = {
+                            viewModel.onEvent(AddPlantEvent.SetName(it))
+                        })
 
+                        Button(onClick = { viewModel.onEvent(AddPlantEvent.OnSubmit) }) {
+                            Text(text = "Submit")
+                        }
+                    }
                 }
             }
         }

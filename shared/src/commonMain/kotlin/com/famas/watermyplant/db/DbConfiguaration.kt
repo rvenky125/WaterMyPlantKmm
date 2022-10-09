@@ -1,6 +1,6 @@
 package com.famas.watermyplant.db
 
-import com.famas.watermyplant.db.objects.PlantObject
+import com.famas.watermyplant.db.objects.add_plant.PlantObject
 import io.realm.kotlin.Realm
 import io.realm.kotlin.RealmConfiguration
 
